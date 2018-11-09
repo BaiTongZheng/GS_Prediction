@@ -1,0 +1,31 @@
+y_clf=train["revenue_status"]
+from xgboost import XGBClassifier
+fit_params={"early_stopping_rounds": 50, "verbose": 100, "eval_metric": "rmse"}
+
+folds = get_folds(df=train_fulldata[['totals_pageviews']].reset_index(), n_splits=5)
+
+xgb_oof_preds = np.zeros(train_fulldata.shape[0])
+xgb_sub_preds = np.zeros(test_fulldata.shape[0])
+vis_importances = pd.DataFrame()
+
+for fold_, (trn_, val_) in enumerate(folds):
+    trn_x, trn_y = train_fulldata.iloc[trn_], y_clf['target'].iloc[trn_]
+    val_x, val_y = train_fulldata.iloc[val_], y_clf['target'].iloc[val_]
+    
+    xgb = XGBRegressor(**xgb_params, n_estimators=1300)
+    
+    xgb.fit(trn_x, np.log1p(trn_y),
+            eval_set=[(val_x, np.log1p(val_y))],
+            early_stopping_rounds=50,
+            eval_metric='auc',
+            verbose=100)
+    
+    xgb_oof_preds[val_] = xgb.predict(val_x)
+    xgb_oof_preds[xgb_oof_preds < 0] = 0
+    
+    # Make sure features are in the same order
+    _preds = xgb.predict(test_fulldata[train_fulldata.columns])
+    _preds[_preds < 0] = 0
+    xgb_sub_preds += _preds / len(folds)
+    
+mean_squared_error(np.log1p(trn_user_target['target']), xgb_oof_preds) ** .5
