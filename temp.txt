@@ -1,3 +1,5 @@
+https://blog.csdn.net/liulina603/article/details/78771738
+
 y_clf=train["revenue_status"]
 from xgboost import XGBClassifier
 fit_params={"early_stopping_rounds": 50, "verbose": 100, "eval_metric": "rmse"}
